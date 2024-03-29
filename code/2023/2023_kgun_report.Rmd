@@ -1,0 +1,218 @@
+---
+title: "2023 Kgun report"
+author: "Randall J. Friendly"
+date: "2023-12-08"
+output: html_document
+---
+
+```{r Package Import, echo=TRUE, error=FALSE, message=FALSE, warning=FALSE}
+library(readxl) #allows you to read in excel files
+library(data.table) #for data organizing
+library(tidyverse) #for this script, uses for dplyr and ggplot2
+library(lubridate) #Deals with date formats
+library(dplyr) #for data organizing
+library(openxlsx) #read, write, and edits xlsx files
+```
+
+```{r Data import, echo=TRUE, error=TRUE,message=TRUE,warning=TRUE}
+n2023 <- read_excel("C:/Users/rfriendly/Desktop/kgun/data/kgun_NOPI_2023.xlsx") #read in nopi file
+n2023 <- n2023[-13] #delete column 13
+a2023 <- read_excel("C:/Users/rfriendly/Desktop/kgun/data/kgun_AGWT_2023.xlsx") #read in agwt file
+m2023 <- read_excel("C:/Users/rfriendly/Desktop/kgun/data/kgun_MALL_2023.xlsx") #read in mall file
+```
+
+```{r Combine data, echo=TRUE, error=FALSE, message=FALSE, warning=FALSE}
+all_species <- rbind(n2023,m2023,a2023) #combines data
+summary(all_species)
+
+```
+
+# R Markdown Simple Kgun Report, 2023
+This is just practice to learn. We are going to summarize the data to get simple statistics for Northern Pintail, Mallard, and American green-winged teals.You can see some information from the imported data above. First, I am going to clean up the data before starting, these codes will not show.
+
+
+```{r Clean up, echo=FALSE, error=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+###Check unique entries for soon to be factor variables.
+unique(all_species$BANDER)
+#There was a mistake in some of the entries. Let's fix it.
+all_species$BANDER[all_species$BANDER == "RFJ"] <- "RJF"
+unique(all_species$BANDER) #fixed
+
+unique(all_species$SPECIES) #asirtuq
+unique(all_species$SEX) #asirtuq
+unique(all_species$HOWSEX) #asirtuq
+unique(all_species$AGE) #asirtuq
+unique(all_species$TRAP_ID) #asirtuq
+
+
+###Make factor variables into factor variables
+is.factor(all_species$SPECIES) #it was not factor variable
+all_species$SPECIES <- as.factor(all_species$SPECIES)
+is.factor(all_species$SPECIES)
+
+is.factor(all_species$BANDER)
+all_species$BANDER <- as.factor(all_species$BANDER)
+is.factor(all_species$BANDER)
+
+is.factor(all_species$SEX)
+all_species$SEX <- as.factor(all_species$SEX)
+is.factor(all_species$SEX)
+
+is.factor(all_species$HOWSEX)
+all_species$HOWSEX <- as.factor(all_species$HOWSEX)
+is.factor(all_species$HOWSEX)
+
+is.factor(all_species$AGE)
+all_species$AGE <- as.factor(all_species$AGE)
+is.factor(all_species$AGE)
+
+is.factor(all_species$TRAP_ID)
+all_species$TRAP_ID <- as.factor(all_species$TRAP_ID)
+is.factor(all_species$TRAP_ID)
+
+```
+
+
+
+### From the data above let's get a table of species with the number of age and sex classes. And other tables.
+
+```{r Age and sex table by species, echo=TRUE, error=FALSE, message=FALSE, warning=FALSE}
+table_sas <- all_species %>% count(SPECIES, AGE, SEX) #count by species and age and sex
+table_sas
+```
+
+```{r Species, echo=TRUE, error=FALSE, message=FALSE, warning=FALSE}
+species_number <- all_species %>% count(SPECIES) #count by species
+species_number
+```
+
+```{r trap species, echo=TRUE, error=FALSE, message=FALSE, warning=FALSE}
+trap_sp <- all_species %>% count(TRAP_ID, SPECIES) #count by trap location and species
+trap_sp
+```
+
+
+```{r trap, echo=TRUE, error=FALSE, message=FALSE, warning=FALSE}
+trap <- all_species %>% count(TRAP_ID) #count by trap location
+trap
+```
+
+### From the information above we are going to create 2 tables
+
+#### Trap by Species
+```{r Trap species, echo=TRUE, error=FALSE, message=FALSE, warning=FALSE}
+bird_table <- data.frame(Trap = c('N1','N2','N3','NOPI2'),
+                         AGWT = c('1','0','5','0'),
+                         NOPI = c('148','223','68','21'),
+                         MALL = c('12','7','0','0'),
+                         Total = c('161','230','73','21'))
+bird_table
+```
+
+#### Age by species
+```{r Age species, echo=TRUE, error=FALSE, message=FALSE, warning=FALSE}
+bird_age_table <- data.frame(Age = c('L','HY','AHY'),
+                             AGWT = c('0','2','4'),
+                             NOPI = c('7','219','234'),
+                             MALL = c('0','6','13'))
+bird_age_table
+```
+
+
+## Figures
+```{r Activate ggplot2, echo=TRUE, error=FALSE, message=FALSE, warning=FALSE}
+library(ggplot2)
+```
+
+```{r import another file}
+nopi_years <- read_excel("C:/Users/rfriendly/Desktop/kgun/data/nopi_numbers_2023.xlsx") #read in nopi file
+mall_years <- read_excel("C:/Users/rfriendly/Desktop/kgun/data/mall_numbers_2023.xlsx") #read in mall file
+agwt_years <- read_excel("C:/Users/rfriendly/Desktop/kgun/data/agwt_numbers_2023.xlsx") #read in agwt file
+```
+
+
+
+```{r ggplot nopi,  echo=FALSE, error=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+nopi_graph <- ggplot(nopi_years, aes(x = as.factor(Year), y = Total)) +
+  geom_col(fill = "lightblue", color = "black") +
+  xlab("Year") + ylab("Total Number of Northern Pintail Banded") +
+  geom_hline(yintercept = mean(nopi_years$Total), color = "black", lty = "dashed") +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  ) +
+  theme(axis.text.x = element_text(angle = 62, hjust = 1)) +
+  theme(axis.title.y = element_text(
+    size = 10,
+    family = "Times",
+    face = "bold"
+  )) +
+  theme(axis.title.x = element_text(
+    size = 10,
+    family = "Times",
+    face = "bold"
+  ))
+
+mall_graph <- ggplot(mall_years, aes(x = as.factor(Year), y = Total)) +
+  geom_col(fill = "lightgreen", color = "black") +
+  xlab("Year") + ylab("Total Number of Mallards Banded") +
+  geom_hline(yintercept = mean(mall_years$Total), color = "black", lty = "dashed") +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  ) +
+  theme(axis.text.x = element_text(angle = 62, hjust = 1)) +
+  theme(axis.title.y = element_text(
+    size = 10,
+    family = "Times",
+    face = "bold"
+  )) +
+  theme(axis.title.x = element_text(
+    size = 10,
+    family = "Times",
+    face = "bold"
+  ))
+
+agwt_graph <- ggplot(agwt_years, aes(x = as.factor(Year), y = Total)) +
+  geom_col(fill = "orange", color = "black") +
+  xlab("Year") + ylab("Total Number of American Green-winged 
+  Teal Banded") +
+  geom_hline(yintercept = mean(agwt_years$Total), color = "black", lty = "dashed") +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  ) +
+  theme(axis.text.x = element_text(angle = 62, hjust = 1)) +
+  theme(axis.title.y = element_text(
+    size = 10,
+    family = "Times",
+    face = "bold"
+  )) +
+  theme(axis.title.x = element_text(
+    size = 10,
+    family = "Times",
+    face = "bold"
+  ))
+```
+
+
+
+
+## NOPI banded per year
+```{r nopi graph, echo=TRUE, error=FALSE, message=FALSE, warning=FALSE}
+nopi_graph
+```
+
+## MALL banded per year
+```{r mall graph, echo=TRUE, error=FALSE, message=FALSE, warning=FALSE}
+mall_graph
+```
+
+## AGW banded per year
+```{r agwt graph, echo=TRUE, error=FALSE, message=FALSE, warning=FALSE}
+agwt_graph
+```
+
