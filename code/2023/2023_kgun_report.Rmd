@@ -15,10 +15,10 @@ library(openxlsx) #read, write, and edits xlsx files
 ```
 
 ```{r Data import, echo=TRUE, error=TRUE,message=TRUE,warning=TRUE}
-n2023 <- read_excel("C:/Users/rfriendly/Desktop/kgun/data/kgun_NOPI_2023.xlsx") #read in nopi file
+n2023 <- read_excel("C:/Users/rfriendly/Desktop/kgun/data/2023/kgun_NOPI_2023.xlsx") #read in nopi file
 n2023 <- n2023[-13] #delete column 13
-a2023 <- read_excel("C:/Users/rfriendly/Desktop/kgun/data/kgun_AGWT_2023.xlsx") #read in agwt file
-m2023 <- read_excel("C:/Users/rfriendly/Desktop/kgun/data/kgun_MALL_2023.xlsx") #read in mall file
+a2023 <- read_excel("C:/Users/rfriendly/Desktop/kgun/data/2023/kgun_AGWT_2023.xlsx") #read in agwt file
+m2023 <- read_excel("C:/Users/rfriendly/Desktop/kgun/data/2023/kgun_MALL_2023.xlsx") #read in mall file
 ```
 
 ```{r Combine data, echo=TRUE, error=FALSE, message=FALSE, warning=FALSE}
@@ -125,9 +125,9 @@ library(ggplot2)
 ```
 
 ```{r import another file}
-nopi_years <- read_excel("C:/Users/rfriendly/Desktop/kgun/data/nopi_numbers_2023.xlsx") #read in nopi file
-mall_years <- read_excel("C:/Users/rfriendly/Desktop/kgun/data/mall_numbers_2023.xlsx") #read in mall file
-agwt_years <- read_excel("C:/Users/rfriendly/Desktop/kgun/data/agwt_numbers_2023.xlsx") #read in agwt file
+nopi_years <- read_excel("C:/Users/rfriendly/Desktop/kgun/data/2023/nopi_numbers_2023.xlsx") #read in nopi file
+mall_years <- read_excel("C:/Users/rfriendly/Desktop/kgun/data/2023/mall_numbers_2023.xlsx") #read in mall file
+agwt_years <- read_excel("C:/Users/rfriendly/Desktop/kgun/data/2023/agwt_numbers_2023.xlsx") #read in agwt file
 ```
 
 
