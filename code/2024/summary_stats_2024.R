@@ -7,6 +7,8 @@ library(tidyverse)
 library(lubridate)
 library(dplyr)
 library(openxlsx)
+library(ggplot2)
+library(tidyr)
 
 
 
@@ -64,6 +66,10 @@ is.factor(all_species$TRAP_ID)
 all_species$TRAP_ID <- as.factor(all_species$TRAP_ID)
 is.factor(all_species$TRAP_ID)
 
+###Make date a 'date' variable
+all_species$DATE <- as.Date(all_species$DATE)
+is.Date(all_species$DATE)
+
 ###Let's try something new
 #library(psych) #used for data summary
 #describe(all_species) nah we don't need this
@@ -84,15 +90,44 @@ trap_sum <- all_species %>%
 
 trap_sum$total_captured_by_trap <- rowSums(trap_sum[, c("NOPI","MALL")])
 
+###save trap sum table
+write.csv(trap_sum, "output/2024/trap_sum.csv")
 
 
+###Show the number of birds banded per day for each of the four trap locations
+grouped_data <- all_species %>%
+  group_by(DATE, TRAP_ID) %>%
+  summarise(count = n(), .groups = "drop")
 
-
-
-
-
-
-
+ggplot(grouped_data, aes(x = DATE, y = count)) +
+  geom_bar(stat = "identity", position = "dodge", fill = "burlywood", color = "black") +
+  facet_wrap(~ TRAP_ID, ncol = 2) +
+  labs(
+    x = "Date",
+    y = "Number of Birds Banded"
+  ) +
+  theme_bw() +
+  theme(strip.background = element_rect(fill = "white")) +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  ) +
+  theme(axis.text.x = element_text(angle = 40, hjust = 1)) +
+  scale_x_date(
+    date_breaks = "2 day",
+    date_labels = "%b %d"
+  ) + 
+  theme(axis.title.y = element_text(
+    size = 10,
+    family = "Times",
+    face = "bold"
+  )) +
+  theme(axis.title.x = element_text(
+    size = 10,
+    family = "Times",
+    face = "bold"
+  ))
+ggsave("output/2024/trap_site_hist.jpg", width = 7, height = 5, units = "in", dpi = 600)  
 
 
 
@@ -101,20 +136,17 @@ trap_sum$total_captured_by_trap <- rowSums(trap_sum[, c("NOPI","MALL")])
 
 
 ###Count the number of AI samples
-is.factor(all_species$NOTES)
-all_species$NOTES <- as.factor(all_species$NOTES)
-is.factor(all_species$NOTES)
+is.character(all_species$NOTES)
+all_species$NOTES <- as.character(all_species$NOTES)
+is.character(all_species$NOTES)
 
-summary(all_species)
-#there are 150. Lets try another way
-sum(is.na(all_species$NOTES))
-# We get 150 again.
-485-150
-##335 AI samples collected
-##Plus 4 from recap file!! so 339. Recap file is from bbl_kgun_recaps_20240829.R
+count_ai <- sum(nchar(all_species$NOTES) > 0, na.rm = TRUE)
+
+#211 ai samples
+##Plus 1 from recap file
 
 ##We are going to subset birds that were sampled for AI
-AI_birds <- all_species[complete.cases(all_species$NOTES), ] # this code gave us 339, Remember we have some in recaps
+AI_birds <- all_species[complete.cases(all_species$NOTES), ] 
 
 ##before running this code make sure you have recaps data after running the script 'bbl_kgun_recaps_20240829.R'
 AI_recaps <- all_recaps[complete.cases(all_recaps$NOTES), ]
@@ -131,10 +163,10 @@ n_occur[n_occur$Freq > 1,] #it is zero so there are no mistakes here.
 ###view data information
 summary(AI_all)
 #Number of each species sampled for AI
-# reminder. 339 total birds swabbed
-# AGWT: 4
-# MALL: 9
-# NOPI: 326
+# reminder. 212 total birds swabbed
+# AGWT: 
+# MALL: 1
+# NOPI: 211
 
 
 ### Create histograms that shows number of birds caught in each year for all species
@@ -235,3 +267,102 @@ ggplot(agwt_years, aes(x = as.factor(Year), y = Total)) +
     face = "bold"
   ))
 ggsave("output/2024/agwt_table_2024.jpg", width = 6.5, height = 3.25, units = "in", dpi = 300)
+
+
+###Include the Bethel banding data
+bethel_ducks <- read_excel("data/2024/BETHEL_Banding_Data_Upload.xlsx")
+
+###clean up and fix the data
+
+#keep the rows 1-44 the other are empty
+bethel_ducks <- bethel_ducks[1:44, ]
+
+#keep certain columns to work with
+bethel_ducks <- subset(bethel_ducks, select = c("Band Number", "Bander ID","Species", "How Sexed","Banding Year",
+                                                "Banding Month", "Banding Day", "Age", "Sex",
+                                                "Location", "Remarks"))
+
+###Work on merging bethel ducks and kgun ducks
+#first need to reformat data
+
+bethel_ducks <- separate(bethel_ducks, "Band Number", into = c("PREFIX", "SUFFIX"), sep = "-")
+
+bethel_ducks <- bethel_ducks %>% rename("BANDER" = "Bander ID",
+                                        "SPECIES" = "Species",
+                                        "SEX" = "Sex",
+                                        "HOWSEX" = "How Sexed",
+                                        "AGE" = "Age",
+                                        "TRAP_ID" = "Location",
+                                        "NOTES" = "Remarks")
+
+bethel_ducks$DATE <- as.Date(ISOdate(bethel_ducks$`Banding Year`, bethel_ducks$`Banding Month`, bethel_ducks$`Banding Day`))
+
+bethel_ducks <- bethel_ducks[, !colnames(bethel_ducks) %in% c("Banding Year", "Banding Month", "Banding Day")]
+
+bethel_ducks$`START TIME` <- NA
+bethel_ducks$`END TIME` <- NA
+
+ordercolumns <- c("PREFIX", "SUFFIX", "BANDER", "SPECIES", "SEX", "HOWSEX", "AGE",
+                  "DATE", "START TIME", "END TIME", "TRAP_ID", "NOTES")
+setcolorder(bethel_ducks, c(ordercolumns, setdiff(names(bethel_ducks), ordercolumns)))
+
+###combine kgun ducks and bethel ducks
+combined_ducks <- rbind(all_species, bethel_ducks)
+
+
+
+##Make factor variables into factor variables
+is.factor(combined_ducks$SPECIES) #it was not factor variable
+combined_ducks$SPECIES <- as.factor(combined_ducks$SPECIES)
+is.factor(combined_ducks$SPECIES)
+
+is.factor(combined_ducks$BANDER)
+combined_ducks$BANDER <- as.factor(combined_ducks$BANDER)
+is.factor(combined_ducks$BANDER)
+
+is.factor(combined_ducks$SEX)
+combined_ducks$SEX <- as.factor(combined_ducks$SEX)
+is.factor(combined_ducks$SEX)
+
+is.factor(combined_ducks$HOWSEX)
+combined_ducks$HOWSEX <- as.factor(combined_ducks$HOWSEX)
+is.factor(combined_ducks$HOWSEX)
+
+is.factor(combined_ducks$AGE)
+combined_ducks$AGE <- as.factor(combined_ducks$AGE)
+is.factor(combined_ducks$AGE)
+
+is.factor(combined_ducks$TRAP_ID)
+combined_ducks$TRAP_ID <- as.factor(combined_ducks$TRAP_ID)
+is.factor(combined_ducks$TRAP_ID)
+
+###Make date a 'date' variable
+combined_ducks$DATE <- as.Date(combined_ducks$DATE)
+is.Date(combined_ducks$DATE)
+
+
+summary(combined_ducks) #Just to look at. 
+table_sas2 <- combined_ducks %>% count(SPECIES, AGE, SEX) #count by species and age and sex
+combined_ducks %>% count(SPECIES) #count by species
+combined_ducks %>% count(TRAP_ID, SPECIES) #count by trap location and species
+combined_ducks %>% count(TRAP_ID) #count by trap location
+
+###Create a table to make a summary of number of ducks caught in each trap for each species
+trap_sum2 <- combined_ducks %>%
+  group_by(TRAP_ID) %>%
+  summarize(
+    NOPI = sum(SPECIES == "NOPI"),
+    MALL = sum(SPECIES == "MALL"),
+    NSHO = sum(SPECIES == "NSHO"),
+    AGWT = sum(SPECIES == "AGWT"),
+    AMWI = sum(SPECIES == "AMWI")
+  )
+
+
+
+
+
+
+
+
+
