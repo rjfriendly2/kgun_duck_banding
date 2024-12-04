@@ -346,6 +346,7 @@ table_sas2 <- combined_ducks %>% count(SPECIES, AGE, SEX) #count by species and 
 combined_ducks %>% count(SPECIES) #count by species
 combined_ducks %>% count(TRAP_ID, SPECIES) #count by trap location and species
 combined_ducks %>% count(TRAP_ID) #count by trap location
+combined_ducks %>% count(SPECIES, SEX, AGE)
 
 ###Create a table to make a summary of number of ducks caught in each trap for each species
 trap_sum2 <- combined_ducks %>%
@@ -359,7 +360,40 @@ trap_sum2 <- combined_ducks %>%
   )
 
 
+###Show the number of birds banded per day for each of the four trap locations
+grouped_data <- combined_ducks %>%
+  group_by(DATE, TRAP_ID) %>%
+  summarise(count = n(), .groups = "drop")
 
+ggplot(grouped_data, aes(x = DATE, y = count)) +
+  geom_bar(stat = "identity", position = "dodge", fill = "burlywood", color = "black") +
+  facet_wrap(~ TRAP_ID, ncol = 3) +
+  labs(
+    x = "Date",
+    y = "Number of Birds Banded"
+  ) +
+  theme_bw() +
+  theme(strip.background = element_rect(fill = "white")) +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  ) +
+  theme(axis.text.x = element_text(angle = 40, hjust = 1)) +
+  scale_x_date(
+    date_breaks = "2 day",
+    date_labels = "%b %d"
+  ) + 
+  theme(axis.title.y = element_text(
+    size = 10,
+    family = "Times",
+    face = "bold"
+  )) +
+  theme(axis.title.x = element_text(
+    size = 10,
+    family = "Times",
+    face = "bold"
+  ))
+ggsave("output/2024/trap_site_hist.jpg", width = 7, height = 5, units = "in", dpi = 600)  
 
 
 
